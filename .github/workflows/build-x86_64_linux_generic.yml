@@ -1,0 +1,48 @@
+name: Build-x86_64-Linux-Generic
+on:
+  release:
+    types: [created]
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4.1.1
+      - run: sudo apt-get remove gcc g++
+      - name: Install prerequisite packages (Bazel & zip)
+        run: sudo apt install apt-transport-https curl gnupg gcc-13 g++-13 -y && curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg && sudo mv bazel-archive-keyring.gpg /usr/share/keyrings && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list && sudo apt update && sudo apt-get -y install zip bazel-6.5.0
+      - name: Clone the tensorflow library & checkout to latest tag
+        run: git clone https://github.com/tensorflow/tensorflow && git fetch --tags && tag=$(git describe --tags `git rev-list --tags --max-count=1`) && cd tensorflow && git checkout $tag
+      - name: Build the tensorflow lite library using Bazel
+        working-directory: ./tensorflow
+        run: bazel build //tensorflow/lite:libtensorflowlite.so -c opt --copt=-mssse3 --copt=-mcx16 --copt=-msse4.1 --copt=-msse4.2 --copt=-mpopcnt --copt=-mno-fma4 --copt=-mno-avx --copt=-mno-avx2 --copt=-mno-avx512f --copt=-march=skylake --copt=-DXNN_ENABLE_AVX512AMX=0 --copt=-DXNN_ENABLE_AVX512F16=0  --cxxopt=-DXNN_ENABLE_AVX512AMX=0 --cxxopt=-DXNN_ENABLE_AVX512F16=0 --copt=-DRUY_PLATFORM_AVX512=0  --copt=-mno-avx512fp16 --copt=-mno-avx512bf16
+      - name: Assemble package
+        working-directory: ./tensorflow
+        run: mkdir -p ../package/lib ../package/inc/tensorflow/lite
+      - name: Copy include files from flatbuffers into new package
+        working-directory: ./tensorflow
+        run: cp -r bazel-tensorflow/external/flatbuffers/include/* ../package/inc
+      - name: Copy include files from tensorflow lite into new package
+        working-directory: ./tensorflow
+        run: cp -r tensorflow/lite/* ../package/inc/tensorflow/lite
+      - name: Copy dynamic library file (.so) from bazel build dir to new package
+        working-directory: ./tensorflow
+        run: cp bazel-out/k8-opt/bin/tensorflow/lite/libtensorflowlite.so ../package/lib/
+      - name: Copy template CMakeLists.txt to new package
+        run: cp cmake/CMakeLists.txt package/
+      - name: Remove other language bindings/examples/docs from the include directory
+        run: rm -r package/inc/tensorflow/lite/{testing,java,ios,objc,python,tools,swift,examples}
+      - name: Strip the tensorflow lite include dir (so that it only contains header files)
+        run: find package/inc/tensorflow -type f ! -name "*.h" ! -name "*.hpp" -delete
+      - name: Remove empty folders
+        run: find package/inc/tensorflow -type d -empty -delete
+      - name: Zip it up
+        run: cd package && zip -r ../tensorflow_linux_generic_x86_64.zip * && cd ..
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run:
+          gh release upload $(gh release view --repo CLFML/TensorFlow_Lite_Compiled --json tagName --jq ".tagName") tensorflow_linux_generic_x86_64.zip
