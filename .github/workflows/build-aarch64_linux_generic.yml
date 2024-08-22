@@ -1,5 +1,6 @@
 name: Build-aarch64_Linux-Generic
 on:
+  workflow_dispatch:
   release:
     types: [created]
 permissions:
