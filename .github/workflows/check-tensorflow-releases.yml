@@ -1,47 +1,54 @@
-name: Check TensorFlow Releases
+name: Check and Create TensorFlow Release
 
 on:
+  workflow_dispatch: # Allows the workflow to be run manually
   schedule:
-    # Run at 11 PM every day
-    - cron: '0 23 * * *'
+    - cron: '0 23 * * *' # Runs daily at midnight UTC
 
 jobs:
-  check-tensorflow-release:
+  check_release:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Run the script
+      - name: Set up jq
+        run: sudo apt-get install -y jq
+
+      - name: Check for New TensorFlow Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Ensure you have set up this secret
         run: |
-         REPO_URL="https://api.github.com/repos/tensorflow/tensorflow"
-         LATEST_TAG=$(curl -s "${REPO_URL}/releases/latest" | jq -r .tag_name)
-         CURRENT_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null)
-      
-         if [ -z "${CURRENT_TAG}" ]; then 
-          echo "No tags found in current repository."
-         fi
-      
-         echo "Latest TensorFlow Tag: ${LATEST_TAG}"
-         echo "Current Repository Tag: ${CURRENT_TAG}"
-      
-         if [ "${LATEST_TAG}" = "${CURRENT_TAG}" ]; then 
-           echo "No new release found."
-           exit 0
-         else 
-           echo "New release found: ${LATEST_TAG}"
-         fi
-      
-         RELEASE_DATA=$(curl -s "${REPO_URL}/releases/tags/${LATEST_TAG}")
-         RELEASE_NAME=$(echo "${RELEASE_DATA}" | jq -r .name)
-         RELEASE_BODY=$(echo "${RELEASE_DATA}" | jq -r .body)
-      
-         echo "Release Name: ${RELEASE_NAME}"
-         echo "Release Notes: ${RELEASE_BODY}"
-      
-         gh release create "${LATEST_TAG}" --title "${RELEASE_NAME}" --notes "${RELEASE_BODY}" || {
-           echo "Failed to create release ${LATEST_TAG}. Check your permissions."
-           exit 1
-         }
+          set -e
+          set -x
+
+          REPO_URL="https://api.github.com/repos/tensorflow/tensorflow"
+          LATEST_TAG=$(curl -s "${REPO_URL}/releases/latest" | jq -r .tag_name)
+          CURRENT_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
+
+          if [ -z "${CURRENT_TAG}" ]; then 
+            echo "No tags found in the current repository."
+          fi
+
+          echo "Latest TensorFlow Tag: ${LATEST_TAG}"
+          echo "Current Repository Tag: ${CURRENT_TAG}"
+
+          if [ "${LATEST_TAG}" = "${CURRENT_TAG}" ]; then 
+            echo "No new release found."
+            exit 0
+          else 
+            echo "New release found: ${LATEST_TAG}"
+          fi
+
+          RELEASE_DATA=$(curl -s "${REPO_URL}/releases/tags/${LATEST_TAG}")
+          RELEASE_NAME=$(echo "${RELEASE_DATA}" | jq -r .name)
+          RELEASE_BODY=$(echo "${RELEASE_DATA}" | jq -r .body)
+
+          echo "Release Name: ${RELEASE_NAME}"
+          echo "Release Notes: ${RELEASE_BODY}"
+
+          gh release create "${LATEST_TAG}" --title "${RELEASE_NAME}" --notes "${RELEASE_BODY}" || {
+            echo "Failed to create release ${LATEST_TAG}. Check your permissions."
+            exit 1
+          }
