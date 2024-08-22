@@ -3,7 +3,7 @@ name: Check TensorFlow Releases
 on:
   schedule:
     # Run at 11 PM every day
-    - cron: '0 13 * * *'
+    - cron: '0 23 * * *'
 
 jobs:
   check-tensorflow-release:
