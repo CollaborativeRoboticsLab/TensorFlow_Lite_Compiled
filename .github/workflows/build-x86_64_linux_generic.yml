@@ -1,5 +1,6 @@
 name: Build-x86_64-Linux-Generic
 on:
+  workflow_dispatch:
   release:
     types: [created]
 permissions:
