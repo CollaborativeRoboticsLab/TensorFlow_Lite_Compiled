@@ -1,9 +1,6 @@
 name: Build-x86_64-Linux-Generic-Noble
 on:
   workflow_dispatch:
-  push:
-    branches: 
-      - main
   pull_request:
     branches: 
       - main
