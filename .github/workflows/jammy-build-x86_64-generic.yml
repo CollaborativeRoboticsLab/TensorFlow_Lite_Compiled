@@ -46,6 +46,11 @@ jobs:
           echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
           git checkout "$latest_tag"
 
+      - name: Patch XNNPACK BUILD.bazel to remove unsupported AVXVNNIINT8 files
+        run: |
+          find . -type f -name BUILD.bazel -path "*XNNPACK*" \
+            -exec sed -i '/avxvnniint8_prod_microkernels\.c/d' {} \;
+
       - name: Build the TensorFlow Lite library using Bazel
         working-directory: ./tensorflow
         run: >
