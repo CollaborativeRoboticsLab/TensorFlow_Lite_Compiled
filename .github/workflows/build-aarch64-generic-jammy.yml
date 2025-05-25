@@ -1,10 +1,18 @@
 name: Build-aarch64_Linux-Generic-Jammy
 on:
   workflow_dispatch:
+  push:
+    branches: 
+      - main
+  pull_request:
+    branches: 
+      - main
   release:
     types: [created]
+
 permissions:
   contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-22.04
