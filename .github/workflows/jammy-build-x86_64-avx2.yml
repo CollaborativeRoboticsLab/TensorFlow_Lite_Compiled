@@ -66,8 +66,8 @@ jobs:
           --copt=-mno-avx512vbmi2
           --copt=-mno-avx512vnni
           --copt=-mno-avx512bitalg
-          --copt=-mno-avx512fp16
-          --copt=-mno-avxvnniint8
+          --copt=-mno-avx512bf16
+          --copt=-mno-avxvnni
           --copt=-DXNN_ENABLE_AVX512AMX=0
           --copt=-DXNN_ENABLE_AVX512F16=0
           --copt=-DXNN_ENABLE_AVXVNNIINT8=0

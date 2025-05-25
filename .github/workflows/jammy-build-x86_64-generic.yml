@@ -49,34 +49,34 @@ jobs:
       - name: Build the TensorFlow Lite library using Bazel
         working-directory: ./tensorflow
         run: >
-          bazel build //tensorflow/lite:libtensorflowlite.so -c opt \
-            --copt=-mssse3 \
-            --copt=-mcx16 \
-            --copt=-msse4.1 \
-            --copt=-msse4.2 \
-            --copt=-mpopcnt \
-            --copt=-mno-fma4 \
-            --copt=-mno-avx \
-            --copt=-mno-avx2 \
-            --copt=-mno-avx512f \
-            --copt=-mno-avx512vl \
-            --copt=-mno-avx512dq \
-            --copt=-mno-avx512bw \
-            --copt=-mno-avx512vbmi \
-            --copt=-mno-avx512ifma \
-            --copt=-mno-avx512vbmi2 \
-            --copt=-mno-avx512vnni \
-            --copt=-mno-avx512bitalg \
-            --copt=-mno-avx512fp16 \
-            --copt=-mno-avxvnniint8 \
-            --copt=-mno-avx512bf16 \
-            --copt=-march=sandybridge \
-            --copt=-DXNN_ENABLE_AVX512AMX=0 \
-            --copt=-DXNN_ENABLE_AVX512F16=0 \
-            --copt=-DXNN_ENABLE_AVXVNNIINT8=0 \
-            --cxxopt=-DXNN_ENABLE_AVX512AMX=0 \
-            --cxxopt=-DXNN_ENABLE_AVX512F16=0 \
-            --cxxopt=-DXNN_ENABLE_AVXVNNIINT8=0 \
+          bazel build //tensorflow/lite:libtensorflowlite.so -c opt
+            --copt=-mssse3
+            --copt=-mcx16
+            --copt=-msse4.1
+            --copt=-msse4.2
+            --copt=-mpopcnt
+            --copt=-mno-fma4
+            --copt=-mno-avx
+            --copt=-mno-avx2
+            --copt=-mno-avx512f
+            --copt=-mno-avx512vl
+            --copt=-mno-avx512dq
+            --copt=-mno-avx512bw
+            --copt=-mno-avx512vbmi
+            --copt=-mno-avx512ifma
+            --copt=-mno-avx512vbmi2
+            --copt=-mno-avx512vnni
+            --copt=-mno-avx512bitalg
+            --copt=-mno-avx512bf16
+            --copt=-mno-avxvnni
+            --copt=-mno-avx512bf16
+            --copt=-march=sandybridge
+            --copt=-DXNN_ENABLE_AVX512AMX=0
+            --copt=-DXNN_ENABLE_AVX512F16=0
+            --copt=-DXNN_ENABLE_AVXVNNIINT8=0
+            --cxxopt=-DXNN_ENABLE_AVX512AMX=0
+            --cxxopt=-DXNN_ENABLE_AVX512F16=0
+            --cxxopt=-DXNN_ENABLE_AVXVNNIINT8=0
             --copt=-DRUY_PLATFORM_AVX512=0
 
       - name: Assemble package directories
