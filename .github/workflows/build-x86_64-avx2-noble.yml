@@ -42,7 +42,23 @@ jobs:
 
       - name: Build the tensorflow lite library using Bazel
         working-directory: ./tensorflow
-        run: bazel build //tensorflow/lite:libtensorflowlite.so -c opt --copt=-mssse3 --copt=-mcx16 --copt=-msse4.1 --copt=-msse4.2 --copt=-mpopcnt --copt=-mno-fma4 --copt=-mno-avx512f --copt=-march=haswell --copt=-DXNN_ENABLE_AVX512AMX=0 --copt=-DXNN_ENABLE_AVX512F16=0  --cxxopt=-DXNN_ENABLE_AVX512AMX=0 --cxxopt=-DXNN_ENABLE_AVX512F16=0 --copt=-DRUY_PLATFORM_AVX512=0  --copt=-mno-avx512fp16 --copt=-mno-avx512bf16
+        run: >
+          bazel build //tensorflow/lite:libtensorflowlite.so -c opt 
+          --copt=-mssse3 
+          --copt=-mcx16 
+          --copt=-msse4.1 
+          --copt=-msse4.2 
+          --copt=-mpopcnt 
+          --copt=-mno-fma4 
+          --copt=-mno-avx512f 
+          --copt=-march=haswell 
+          --copt=-DXNN_ENABLE_AVX512AMX=0 
+          --copt=-DXNN_ENABLE_AVX512F16=0  
+          --cxxopt=-DXNN_ENABLE_AVX512AMX=0 
+          --cxxopt=-DXNN_ENABLE_AVX512F16=0 
+          --copt=-DRUY_PLATFORM_AVX512=0  
+          --copt=-mno-avx512fp16 
+          --copt=-mno-avx512bf16
 
       - name: Assemble package
         working-directory: ./tensorflow

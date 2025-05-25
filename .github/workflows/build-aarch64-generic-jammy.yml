@@ -44,7 +44,10 @@ jobs:
 
       - name: Build the tensorflow lite library using Bazel
         working-directory: ./tensorflow
-        run: bazel build --config=elinux_aarch64 //tensorflow/lite:libtensorflowlite.so --cxxopt=-DXNNPACK_ENABLE_ARM_BF16=OFF --cxxopt=-DXNNPACK_ENABLE_ARM_I8MM=OFF
+        run: > 
+          bazel build --config=elinux_aarch64 //tensorflow/lite:libtensorflowlite.so 
+          --cxxopt=-DXNNPACK_ENABLE_ARM_BF16=OFF 
+          --cxxopt=-DXNNPACK_ENABLE_ARM_I8MM=OFF
       
       - name: Assemble package
         working-directory: ./tensorflow
