@@ -1,4 +1,4 @@
-name: Build-x86_64-Linux-AVX2-Jammy
+name: Build-x86_64-Linux-Generic-Jammy
 
 on:
   workflow_dispatch:
@@ -21,14 +21,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.1
 
-      - name: Remove system GCC
+      - name: Remove system GCC (prepare for GCC 11)
         run: sudo apt-get remove -y gcc g++
 
       - name: Install prerequisites (Bazel, GCC 11, zip)
         run: |
           sudo apt install apt-transport-https curl gnupg gcc-11 g++-11 -y 
           curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel-archive-keyring.gpg 
-          sudo mv bazel-archive-keyring.gpg /usr/share/keyrings
+          sudo mv bazel-archive-keyring.gpg /usr/share/keyrings 
           echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list 
           sudo apt update 
           sudo apt-get -y install zip bazel-6.5.0
@@ -46,24 +46,26 @@ jobs:
           echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
           git checkout "$latest_tag"
 
-      - name: Build TensorFlow Lite (AVX2 target)
+      - name: Build the TensorFlow Lite library using Bazel
         working-directory: ./tensorflow
         run: >
-          bazel build //tensorflow/lite:libtensorflowlite.so -c opt 
-          --copt=-mssse3 
-          --copt=-mcx16 
-          --copt=-msse4.1 
-          --copt=-msse4.2 
-          --copt=-mpopcnt 
-          --copt=-mno-fma4 
-          --copt=-mno-avx512f 
-          --copt=-march=haswell 
-          --copt=-DXNN_ENABLE_AVX512AMX=0 
-          --copt=-DXNN_ENABLE_AVX512F16=0  
-          --cxxopt=-DXNN_ENABLE_AVX512AMX=0 
-          --cxxopt=-DXNN_ENABLE_AVX512F16=0 
-          --copt=-DRUY_PLATFORM_AVX512=0  
-          --copt=-mno-avx512fp16 
+          bazel build //tensorflow/lite:libtensorflowlite.so -c opt
+          --copt=-mssse3
+          --copt=-mcx16
+          --copt=-msse4.1
+          --copt=-msse4.2
+          --copt=-mpopcnt
+          --copt=-mno-fma4
+          --copt=-mno-avx
+          --copt=-mno-avx2
+          --copt=-mno-avx512f
+          --copt=-march=sandybridge
+          --copt=-DXNN_ENABLE_AVX512AMX=0
+          --copt=-DXNN_ENABLE_AVX512F16=0
+          --cxxopt=-DXNN_ENABLE_AVX512AMX=0
+          --cxxopt=-DXNN_ENABLE_AVX512F16=0
+          --copt=-DRUY_PLATFORM_AVX512=0
+          --copt=-mno-avx512fp16
           --copt=-mno-avx512bf16
 
       - name: Assemble package directories
@@ -78,21 +80,21 @@ jobs:
         working-directory: ./tensorflow
         run: cp -r tensorflow/lite/* ../package/include/tensorflow/lite
 
-      - name: Copy compiled library
+      - name: Copy compiled TensorFlow Lite .so file
         working-directory: ./tensorflow
         run: cp bazel-out/k8-opt/bin/tensorflow/lite/libtensorflowlite.so ../package/lib/
 
-      - name: Copy CMakeLists template (if any)
+      - name: Copy CMakeLists template (if needed)
         run: cp cmake/CMakeLists.txt package/
 
-      - name: Clean non-header files and bindings
+      - name: Remove non-header files and bindings
         run: |
-          rm -r package/include/tensorflow/lite/{testing,java,ios,objc,python,tools,swift,examples} || true
+          rm -r package/include/tensorflow/lite/{testing,java,ios,objc,python,tools,swift,examples}
           find package/include/tensorflow -type f ! -name "*.h" ! -name "*.hpp" -delete
           find package/include/tensorflow -type d -empty -delete
 
       - name: Create zip archive
-        run: cd package && zip -r ../tensorflow_linux_avx2_x86_64_jammy.zip * && cd ..
+        run: cd package && zip -r ../tensorflow_linux_generic_x86_64_jammy.zip * && cd ..
 
       - name: Create GitHub release if it doesn't exist
         run: |
@@ -104,8 +106,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload release asset
+      - name: Remove existing release asset (if exists)
+        run: |
+          gh release delete-asset "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_generic_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_avx2_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled
+          gh release upload "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_generic_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled

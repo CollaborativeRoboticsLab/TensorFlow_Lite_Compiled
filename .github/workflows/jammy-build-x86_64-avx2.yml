@@ -1,4 +1,5 @@
-name: Build-x86_64-Linux-Generic-Noble
+name: Build-x86_64-Linux-AVX2-Jammy
+
 on:
   workflow_dispatch:
   pull_request:
@@ -6,24 +7,28 @@ on:
       - main
   release:
     types: [created]
+
 permissions:
   contents: write
+
 jobs:
   deploy:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     env:
       GH_TOKEN: ${{ secrets.GH_PAT }}
       OWNER: collaborativeroboticslab
 
     steps:
       - uses: actions/checkout@v4.1.1
-      - run: sudo apt-get remove gcc g++
 
-      - name: Install prerequisite packages (Bazel & zip)
-        run: | 
-          sudo apt install apt-transport-https curl gnupg gcc-13 g++-13 -y 
-          curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg 
-          sudo mv bazel-archive-keyring.gpg /usr/share/keyrings 
+      - name: Remove system GCC
+        run: sudo apt-get remove -y gcc g++
+
+      - name: Install prerequisites (Bazel, GCC 11, zip)
+        run: |
+          sudo apt install apt-transport-https curl gnupg gcc-11 g++-11 -y 
+          curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel-archive-keyring.gpg 
+          sudo mv bazel-archive-keyring.gpg /usr/share/keyrings
           echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list 
           sudo apt update 
           sudo apt-get -y install zip bazel-6.5.0
@@ -41,7 +46,7 @@ jobs:
           echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
           git checkout "$latest_tag"
 
-      - name: Build the tensorflow lite library using Bazel
+      - name: Build TensorFlow Lite (AVX2 target)
         working-directory: ./tensorflow
         run: >
           bazel build //tensorflow/lite:libtensorflowlite.so -c opt 
@@ -51,10 +56,8 @@ jobs:
           --copt=-msse4.2 
           --copt=-mpopcnt 
           --copt=-mno-fma4 
-          --copt=-mno-avx 
-          --copt=-mno-avx2 
           --copt=-mno-avx512f 
-          --copt=-march=sandybridge 
+          --copt=-march=haswell 
           --copt=-DXNN_ENABLE_AVX512AMX=0 
           --copt=-DXNN_ENABLE_AVX512F16=0  
           --cxxopt=-DXNN_ENABLE_AVX512AMX=0 
@@ -63,36 +66,33 @@ jobs:
           --copt=-mno-avx512fp16 
           --copt=-mno-avx512bf16
 
-      - name: Assemble package
+      - name: Assemble package directories
         working-directory: ./tensorflow
         run: mkdir -p ../package/lib ../package/include/tensorflow/lite
 
-      - name: Copy include files from flatbuffers into new package
+      - name: Copy flatbuffers headers
         working-directory: ./tensorflow
         run: cp -r bazel-tensorflow/external/flatbuffers/include/* ../package/include
 
-      - name: Copy include files from tensorflow lite into new package
+      - name: Copy TensorFlow Lite headers
         working-directory: ./tensorflow
         run: cp -r tensorflow/lite/* ../package/include/tensorflow/lite
 
-      - name: Copy dynamic library file (.so) from bazel build dir to new package
+      - name: Copy compiled library
         working-directory: ./tensorflow
         run: cp bazel-out/k8-opt/bin/tensorflow/lite/libtensorflowlite.so ../package/lib/
 
-      - name: Copy template CMakeLists.txt to new package
+      - name: Copy CMakeLists template (if any)
         run: cp cmake/CMakeLists.txt package/
 
-      - name: Remove other language bindings/examples/docs from the include directory
-        run: rm -r package/include/tensorflow/lite/{testing,java,ios,objc,python,tools,swift,examples}
+      - name: Clean non-header files and bindings
+        run: |
+          rm -r package/include/tensorflow/lite/{testing,java,ios,objc,python,tools,swift,examples} || true
+          find package/include/tensorflow -type f ! -name "*.h" ! -name "*.hpp" -delete
+          find package/include/tensorflow -type d -empty -delete
 
-      - name: Strip the tensorflow lite include dir (so that it only contains header files)
-        run: find package/include/tensorflow -type f ! -name "*.h" ! -name "*.hpp" -delete
-
-      - name: Remove empty folders
-        run: find package/include/tensorflow -type d -empty -delete
-
-      - name: Zip it up
-        run: cd package && zip -r ../tensorflow_linux_generic_x86_64_noble.zip * && cd ..
+      - name: Create zip archive
+        run: cd package && zip -r ../tensorflow_linux_avx2_x86_64_jammy.zip * && cd ..
 
       - name: Create GitHub release if it doesn't exist
         run: |
@@ -104,8 +104,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Asset
+      - name: Remove existing release asset (if exists)
+        run: |
+          gh release delete-asset "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_avx2_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run:
-          gh release upload "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_generic_x86_64_noble.zip --repo $OWNER/TensorFlow_Lite_Compiled
+
+      - name: Upload release asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_avx2_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled
