@@ -65,7 +65,6 @@ jobs:
           --cxxopt=-DXNN_ENABLE_AVX512AMX=0
           --cxxopt=-DXNN_ENABLE_AVX512F16=0
           --copt=-DRUY_PLATFORM_AVX512=0
-          --copt=-mno-avx512fp16=0
           --copt=-mno-avx512bf16
 
       - name: Assemble package directories
