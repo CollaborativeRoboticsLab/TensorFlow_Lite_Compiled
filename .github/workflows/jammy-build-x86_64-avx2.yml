@@ -64,6 +64,7 @@ jobs:
           --cxxopt=-DXNN_ENABLE_AVX512F16=0 
           --copt=-DRUY_PLATFORM_AVX512=0  
           --copt=-mno-avx512bf16
+          --copt=-DXNN_ENABLE_AVXVNNIINT8=0
 
       - name: Assemble package directories
         working-directory: ./tensorflow
