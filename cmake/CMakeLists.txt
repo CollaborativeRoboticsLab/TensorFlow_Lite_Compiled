@@ -7,7 +7,7 @@ project(tensorflow-lite C CXX)
 
 add_library(tensorflow-lite INTERFACE)
 
-target_include_directories(tensorflow-lite INTERFACE ${CMAKE_CURRENT_LIST_DIR}/inc)
+target_include_directories(tensorflow-lite INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     target_link_libraries(tensorflow-lite INTERFACE ${CMAKE_CURRENT_LIST_DIR}/lib/tensorflowlite.dll)
