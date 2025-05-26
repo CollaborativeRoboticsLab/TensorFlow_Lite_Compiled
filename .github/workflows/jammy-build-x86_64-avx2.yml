@@ -36,7 +36,7 @@ jobs:
           sudo mv bazel-archive-keyring.gpg /usr/share/keyrings
           echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list 
           sudo apt update 
-          sudo apt-get -y install zip bazel-6.5.0
+          sudo apt-get -y install zip bazel-5.3.0
 
       - name: Clone the TensorFlow repository
         run: git clone https://github.com/tensorflow/tensorflow
