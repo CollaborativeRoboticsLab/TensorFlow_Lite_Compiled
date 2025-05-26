@@ -37,6 +37,11 @@ jobs:
           sudo apt update 
           sudo apt-get -y install zip bazel-5.3.0
 
+      - name: Install Python dependencies for build
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install numpy
+
       - name: Clone the TensorFlow repository
         run: git clone https://github.com/tensorflow/tensorflow
 
