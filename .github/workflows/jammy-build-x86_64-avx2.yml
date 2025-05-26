@@ -2,6 +2,9 @@ name: Build-x86_64-Linux-AVX2-Jammy
 
 on:
   workflow_dispatch:
+  push:
+    branches: 
+      - main
   pull_request:
     branches: 
       - main
@@ -11,12 +14,14 @@ on:
 permissions:
   contents: write
 
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+  OWNER: collaborativeroboticslab
+  TENSORFLOW_TAG: v2.13.0
+
 jobs:
   deploy:
     runs-on: ubuntu-22.04
-    env:
-      GH_TOKEN: ${{ secrets.GH_PAT }}
-      OWNER: collaborativeroboticslab
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -36,15 +41,14 @@ jobs:
       - name: Clone the TensorFlow repository
         run: git clone https://github.com/tensorflow/tensorflow
 
-      - name: Checkout latest version tag
+      - name: Checkout specified version tag
         id: tf_tag
         working-directory: tensorflow
         run: |
           git fetch --tags
-          latest_tag=$(git tag --sort=-creatordate | grep "^v" | head -n 1)
-          echo "Using latest tag: $latest_tag"
-          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
-          git checkout "$latest_tag"
+          echo "Using TensorFlow tag: $TENSORFLOW_TAG"
+          git checkout "$TENSORFLOW_TAG"
+          echo "latest_tag=$TENSORFLOW_TAG" >> $GITHUB_OUTPUT
 
       - name: Patch XNNPACK BUILD.bazel to remove unsupported AVXVNNIINT8 files
         run: |
@@ -112,17 +116,17 @@ jobs:
 
       - name: Create GitHub release if it doesn't exist
         run: |
-          gh release view "${{ steps.tf_tag.outputs.latest_tag }}" --repo $OWNER/TensorFlow_Lite_Compiled || \
-          gh release create "${{ steps.tf_tag.outputs.latest_tag }}" \
+          gh release view "$TENSORFLOW_TAG" --repo $OWNER/TensorFlow_Lite_Compiled || \
+          gh release create "$TENSORFLOW_TAG" \
             --repo $OWNER/TensorFlow_Lite_Compiled \
-            --title "${{ steps.tf_tag.outputs.latest_tag }}" \
-            --notes "Auto-generated release for TensorFlow Lite ${{ steps.tf_tag.outputs.latest_tag }}"
+            --title "$TENSORFLOW_TAG" \
+            --notes "Auto-generated release for TensorFlow Lite $TENSORFLOW_TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Remove existing release asset (if exists)
         run: |
-          gh release delete-asset "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_avx2_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled || true
+          gh release delete-asset "$TENSORFLOW_TAG" tensorflow_linux_avx2_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -130,4 +134,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ steps.tf_tag.outputs.latest_tag }}" tensorflow_linux_avx2_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled
+          gh release upload "$TENSORFLOW_TAG" tensorflow_linux_avx2_x86_64_jammy.zip --repo $OWNER/TensorFlow_Lite_Compiled
